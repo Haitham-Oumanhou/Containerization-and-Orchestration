@@ -1,0 +1,123 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+  namespace: exam
+  labels:
+    type: local
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+  persistentVolumeReclaimPolicy: Retain
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: exam
+  name: mysql-pv-claim
+  labels:
+    app: mini-projet
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 250Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: exam
+  name: mini-projet-mysql
+  labels:
+    app: mini-projet
+spec:
+  ports:
+    - port: 3306
+  selector:
+    app: mini-projet
+    tier: mysql
+  clusterIP: None
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  namespace: exam
+  name: mini-projet-mysql
+  labels:
+    app: mini-projet
+spec:
+  serviceName: "mini-projet-mysql"
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mini-projet
+      tier: mysql
+  template:
+    metadata:
+      labels:
+        app: mini-projet
+        tier: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-configmap
+                  key: name
+          ports:
+            - containerPort: 3306
+              name: mysql
+          resources:
+            limits:
+              cpu: "0.3"
+              memory: "400Mi"
+            requests:
+              cpu: "0.2"
+              memory: "200Mi"
+
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+    - metadata:
+        name: mysql-persistent-storage
+        labels:
+          app: mini-projet
+          tier: mysql
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 250Mi
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mini-projet-database-pdb
+  namespace: exam
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: mini-projet
+      tier: mysql

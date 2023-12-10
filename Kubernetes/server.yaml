@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-projet-server
+  namespace: exam
+  labels:
+    app: mini-projet-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mini-projet-server
+  template:
+    metadata:
+      labels:
+        app: mini-projet-server
+    spec:
+      containers:
+        - name: mini-projet-server
+          image: haithamomh/springk8s:1.1.0
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-configmap
+                  key: url
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: password
+          resources:
+            limits:
+              cpu: "0.4"
+              memory: "700Mi"
+            requests:
+              cpu: "0.3"
+              memory: "400Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-projet-server
+  namespace: exam
+  labels:
+    app: mini-projet-server
+spec:
+  selector:
+    app: mini-projet-server
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mini-projet-server-pdb
+  namespace: exam
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: "mini-projet-server"

@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mini-projet-ingress
+  namespace: exam
+
+spec:
+  rules:
+    - host: haitham-exam.k8s
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mini-projet-client
+                port:
+                  number: 8081

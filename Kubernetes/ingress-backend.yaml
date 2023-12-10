@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mini-projet-ingress-backend
+  namespace: exam
+  annotations:
+    spec.ingressClassName: "nginx"
+    nginx.ingress.kubernetes.io/add-base-url: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+spec:
+  rules:
+    - host: haitham-exam-api.k8s
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mini-projet-server
+                port:
+                  number: 8080

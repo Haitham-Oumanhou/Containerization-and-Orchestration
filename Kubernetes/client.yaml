@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mini-projet-client
+  namespace: exam
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mini-projet-client
+  template:
+    metadata:
+      labels:
+        app: mini-projet-client
+    spec:
+      containers:
+        - name: mini-projet-client
+          image: haithamomh/angulark8s:1.4.0
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 80
+          resources:
+            limits:
+              cpu: "0.4"
+              memory: "7000Mi"
+            requests:
+              cpu: "0.3"
+              memory: "400Mi"
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          startupProbe:
+            exec:
+              command:
+                - cat
+                - /etc/hostname
+            periodSeconds: 10
+            failureThreshold: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mini-projet-client
+  namespace: exam
+spec:
+  type: ClusterIP
+  selector:
+    app: mini-projet-client
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 80
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mini-projet-client-pdb
+  namespace: exam
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: "mini-projet-client"
